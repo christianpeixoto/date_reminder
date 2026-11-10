@@ -81,12 +81,12 @@ class AppLocalizations {
 
   static AppLocalizations of(BuildContext context) {
     return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
-        AppLocalizations(const Locale('en'));
+        AppLocalizations(const Locale('pt'));
   }
 
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
-      'appTitle': 'Fixed Event Tracker',
+      'appTitle': 'Date Reminder: Fixed Events',
       'noEvents': 'No events added yet. Tap + to add one!',
       'addEvent': 'Add Event',
       'editEvent': 'Edit Event',
@@ -129,7 +129,7 @@ class AppLocalizations {
       'remind7': '1 week before',
     },
     'pt': {
-      'appTitle': 'Gestor de Eventos Fixos',
+      'appTitle': 'Date Reminder: Fixed Events',
       'noEvents': 'Sem eventos adicionados. Toque em + para adicionar um!',
       'addEvent': 'Adicionar Evento',
       'editEvent': 'Editar Evento',
@@ -171,10 +171,59 @@ class AppLocalizations {
       'remind3': '3 dias antes',
       'remind7': '1 semana antes',
     },
+    'es': {
+      'appTitle': 'Date Reminder: Eventos Fijos',
+      'noEvents': '¡No hay eventos añadidos. Toca + para añadir uno!',
+      'addEvent': 'Añadir Evento',
+      'editEvent': 'Editar Evento',
+      'description': 'Descripción',
+      'pickDate': 'Elegir Fecha',
+      'cancel': 'Cancelar',
+      'save': 'Guardar',
+      'add': 'Añadir',
+      'deleteTitle': '¿Eliminar Evento?',
+      'deleteAction': 'Eliminar',
+      'csvShareText': 'Aquí está la exportación CSV de mis eventos.',
+      'notificationTitle': '¡Recordatorio de Evento!',
+      'notificationBody': 'ocurre pronto!',
+      'settings': 'Ajustes',
+      'language': 'Idioma',
+      'appearance': 'Apariencia',
+      'themeMode': 'Modo de Tema',
+      'lightTheme': 'Claro',
+      'darkTheme': 'Oscuro',
+      'systemTheme': 'Sistema',
+      'dataManagement': 'Gestión de Datos',
+      'exportCsv': 'Exportar Eventos (CSV)',
+      'importCsv': 'Importar Eventos (CSV)',
+      'importSuccess': '¡Eventos importados con éxito!',
+      'importFailed': 'Fallo al importar el archivo CSV.',
+      'category': 'Categoría',
+      'catBirthday': 'Cumpleaños',
+      'catAnniversary': 'Aniversario / Boda',
+      'catMemorial': 'Memorial / Fallecimiento',
+      'catWork': 'Trabajo y Carrera',
+      'catGraduation': 'Graduación y Educación',
+      'catHome': 'Hogar y Vivienda',
+      'catPet': 'Hito de Mascota',
+      'catHealth': 'Salud y Bienestar',
+      'catOther': 'Otro Evento',
+      'remindBefore': 'Anticipación del Recordatorio',
+      'remind0': 'El día del evento',
+      'remind1': '1 día antes',
+      'remind3': '3 días antes',
+      'remind7': '1 semana antes',
+    },
   };
 
   String get(String key) {
-    return _localizedValues[locale.languageCode]?[key] ??
+    // Check exact match (e.g. 'pt_BR'), fallback to language code ('pt'), then English
+    final lang = locale.languageCode;
+    final country = locale.countryCode;
+    final fullKey = country != null ? '${lang}_$country' : lang;
+
+    return _localizedValues[fullKey]?[key] ??
+        _localizedValues[lang]?[key] ??
         _localizedValues['en']?[key] ??
         key;
   }
@@ -184,7 +233,7 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const AppLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) => ['en', 'pt'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => ['en', 'pt', 'es'].contains(locale.languageCode);
 
   @override
   Future<AppLocalizations> load(Locale locale) async {
@@ -238,13 +287,17 @@ class EventTrackerAppState extends State<EventTrackerApp> {
     final prefs = await SharedPreferences.getInstance();
     
     final String? langCode = prefs.getString('saved_language_code');
+    final String? countryCode = prefs.getString('saved_country_code');
     final String? themeStr = prefs.getString('saved_theme_mode');
+    
     ThemeMode loadedTheme = ThemeMode.system;
     if (themeStr == 'light') loadedTheme = ThemeMode.light;
     if (themeStr == 'dark') loadedTheme = ThemeMode.dark;
 
     setState(() {
-      if (langCode != null) _locale = Locale(langCode);
+      if (langCode != null) {
+        _locale = Locale(langCode, countryCode);
+      }
       _themeMode = loadedTheme;
     });
   }
@@ -253,8 +306,14 @@ class EventTrackerAppState extends State<EventTrackerApp> {
     final prefs = await SharedPreferences.getInstance();
     if (locale == null) {
       await prefs.remove('saved_language_code');
+      await prefs.remove('saved_country_code');
     } else {
       await prefs.setString('saved_language_code', locale.languageCode);
+      if (locale.countryCode != null) {
+        await prefs.setString('saved_country_code', locale.countryCode!);
+      } else {
+        await prefs.remove('saved_country_code');
+      }
     }
     setState(() {
       _locale = locale;
@@ -288,6 +347,8 @@ class EventTrackerAppState extends State<EventTrackerApp> {
       supportedLocales: const [
         Locale('en', ''),
         Locale('pt', ''),
+        Locale('pt', 'BR'),
+        Locale('es', ''),
       ],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
@@ -327,8 +388,6 @@ class EventItem {
         iconCodePoint = iconCodePoint ?? (category?.defaultIcon.codePoint ?? 0xe123),
         colorValue = colorValue ?? (category?.defaultColor.toARGB32() ?? 0xFF2196F3);
 
-  // Safe getter that maps stored code points to compile-time constant Icons,
-  // allowing Flutter's icon tree-shaker to recognize and bundle them.
   IconData get icon {
     const knownIcons = [
       Icons.event_note,
@@ -352,7 +411,7 @@ class EventItem {
         return ic;
       }
     }
-    return Icons.event_note; // Fallback default constant icon
+    return Icons.event_note;
   }
 
   Color get color => Color(colorValue);
@@ -807,7 +866,7 @@ class _EventListScreenState extends State<EventListScreen> {
       body: _events.isEmpty
           ? Center(child: Text(l10n.get('noEvents')))
           : ListView.builder(
-              padding: const EdgeInsets.only(bottom: 90), // 👈 Added padding so the FAB never covers the last card!
+              padding: const EdgeInsets.only(bottom: 90),
               itemCount: _events.length,
               itemBuilder: (context, index) {
                 final event = _events[index];
@@ -1116,6 +1175,14 @@ class SettingsScreen extends StatelessWidget {
         ? ThemeMode.dark
         : ThemeMode.light;
 
+    // Determine current dropdown selection value
+    String selectedLangValue = 'en';
+    if (currentLocale.languageCode == 'pt') {
+      selectedLangValue = currentLocale.countryCode == 'BR' ? 'pt_BR' : 'pt';
+    } else if (currentLocale.languageCode == 'es') {
+      selectedLangValue = 'es';
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.get('settings')),
@@ -1138,9 +1205,7 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.language),
             title: Text(l10n.get('language')),
             trailing: DropdownButton<String>(
-              value: ['en', 'pt'].contains(currentLocale.languageCode)
-                  ? currentLocale.languageCode
-                  : 'en',
+              value: selectedLangValue,
               items: const [
                 DropdownMenuItem(
                   value: 'en',
@@ -1150,10 +1215,22 @@ class SettingsScreen extends StatelessWidget {
                   value: 'pt',
                   child: Text('Português 🇵🇹'),
                 ),
+                DropdownMenuItem(
+                  value: 'pt_BR',
+                  child: Text('Português (BR) 🇧🇷'),
+                ),
+                DropdownMenuItem(
+                  value: 'es',
+                  child: Text('Español 🇪🇸'),
+                ),
               ],
-              onChanged: (String? newLanguageCode) {
-                if (newLanguageCode != null) {
-                  EventTrackerApp.of(context).setLocale(Locale(newLanguageCode));
+              onChanged: (String? val) {
+                if (val != null) {
+                  if (val == 'pt_BR') {
+                    EventTrackerApp.of(context).setLocale(const Locale('pt', 'BR'));
+                  } else {
+                    EventTrackerApp.of(context).setLocale(Locale(val));
+                  }
                 }
               },
             ),
