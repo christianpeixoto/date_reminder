@@ -1097,147 +1097,158 @@ class SettingsScreen extends StatelessWidget {
 
   Future<void> _importCsv(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
+    
+    FilePickerResult? result;
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
       );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${l10n.get('importFailed')} ($e)')),
+        );
+      }
+      return;
+    }
 
-      if (result != null && result.files.single.name.isNotEmpty) {
-        bool overwrite = false;
-        
-        // Show dialog with checkbox option before importing
-        final bool? shouldImport = await showDialog<bool>(
-          context: context,
-          builder: (BuildContext dialogContext) {
-            bool localOverwrite = false;
-            return StatefulBuilder(
-              builder: (context, setDialogState) {
-                return AlertDialog(
-                  title: Text(l10n.get('importCsv')),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Choose how you want to import your events:'),
-                      const SizedBox(height: 12),
-                      CheckboxListTile(
-                        title: const Text('Overwrite existing events'),
-                        value: localOverwrite,
-                        onChanged: (val) {
-                          setDialogState(() {
-                            localOverwrite = val ?? false;
-                          });
-                        },
-                        controlAffinity: ListTileControlAffinity.leading,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ],
+    if (result == null || result.files.single.name.isEmpty) return;
+    if (!context.mounted) return;
+
+    bool overwrite = false;
+    
+    // Show dialog with checkbox option before importing
+    final bool? shouldImport = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        bool localOverwrite = false;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(l10n.get('importCsv')),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Choose how you want to import your events:'),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    title: const Text('Overwrite existing events'),
+                    value: localOverwrite,
+                    onChanged: (val) {
+                      setDialogState(() {
+                        localOverwrite = val ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(false),
-                      child: Text(l10n.get('cancel')),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        overwrite = localOverwrite;
-                        Navigator.of(dialogContext).pop(true);
-                      },
-                      child: Text(l10n.get('save')),
-                    ),
-                  ],
-                );
-              },
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: Text(l10n.get('cancel')),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    overwrite = localOverwrite;
+                    Navigator.of(dialogContext).pop(true);
+                  },
+                  child: Text(l10n.get('save')),
+                ),
+              ],
             );
           },
         );
+      },
+    );
 
-        if (shouldImport != true) return;
+    if (shouldImport != true) return;
+    if (!context.mounted) return;
 
-        final PlatformFile platformFile = result.files.single;
+    try {
+      final PlatformFile platformFile = result.files.single;
 
-        String csvContent = '';
-        if (platformFile.bytes != null) {
-          csvContent = utf8.decode(platformFile.bytes!);
-        } else if (platformFile.path != null) {
-          final file = File(platformFile.path!);
-          csvContent = await file.readAsString();
-        } else {
-          csvContent = await platformFile.xFile.readAsString();
-        }
+      String csvContent = '';
+      if (platformFile.bytes != null) {
+        csvContent = utf8.decode(platformFile.bytes!);
+      } else if (platformFile.path != null) {
+        final file = File(platformFile.path!);
+        csvContent = await file.readAsString();
+      } else {
+        csvContent = await platformFile.xFile.readAsString();
+      }
 
-        final fields = const CsvToListConverter().convert(csvContent);
+      final fields = const CsvToListConverter().convert(csvContent);
 
-        if (fields.length <= 1) return;
+      if (fields.length <= 1) return;
 
-        List<EventItem> importedEvents = [];
-        for (int i = 1; i < fields.length; i++) {
-          final row = fields[i];
-          if (row.length >= 3) {
-            EventCategory parsedCategory = EventCategory.other;
-            if (row.length >= 6) {
-              parsedCategory = EventCategory.values.firstWhere(
-                (e) => e.name == row[5].toString(),
-                orElse: () => EventCategory.other,
-              );
-            }
-
-            int parsedRemindDays = 0;
-            if (row.length >= 7) {
-              parsedRemindDays = int.tryParse(row[6].toString()) ?? 0;
-            }
-
-            importedEvents.add(
-              EventItem(
-                id: row[0].toString(),
-                description: row[1].toString(),
-                date: DateTime.parse(row[2].toString()),
-                iconCodePoint: row.length >= 4 ? int.tryParse(row[3].toString()) ?? parsedCategory.defaultIcon.codePoint : parsedCategory.defaultIcon.codePoint,
-                colorValue: row.length >= 5 ? int.tryParse(row[4].toString()) ?? parsedCategory.defaultColor.toARGB32() : parsedCategory.defaultColor.toARGB32(),
-                category: parsedCategory,
-                remindDaysBefore: parsedRemindDays,
-              ),
+      List<EventItem> importedEvents = [];
+      for (int i = 1; i < fields.length; i++) {
+        final row = fields[i];
+        if (row.length >= 3) {
+          EventCategory parsedCategory = EventCategory.other;
+          if (row.length >= 6) {
+            parsedCategory = EventCategory.values.firstWhere(
+              (e) => e.name == row[5].toString(),
+              orElse: () => EventCategory.other,
             );
           }
-        }
 
-        List<EventItem> finalEvents = [];
-        
-        if (overwrite) {
-          // Overwrite everything with imported events
-          finalEvents = importedEvents;
-        } else {
-          // Merge logic: update matching descriptions, add new ones
-          finalEvents = List.from(events);
-          for (var imported in importedEvents) {
-            int existingIndex = finalEvents.indexWhere(
-              (e) => e.description.trim().toLowerCase() == imported.description.trim().toLowerCase(),
-            );
-
-            if (existingIndex != -1) {
-              finalEvents[existingIndex].date = imported.date;
-              finalEvents[existingIndex].iconCodePoint = imported.iconCodePoint;
-              finalEvents[existingIndex].colorValue = imported.colorValue;
-              finalEvents[existingIndex].category = imported.category;
-              finalEvents[existingIndex].remindDaysBefore = imported.remindDaysBefore;
-            } else {
-              finalEvents.add(imported);
-            }
+          int parsedRemindDays = 0;
+          if (row.length >= 7) {
+            parsedRemindDays = int.tryParse(row[6].toString()) ?? 0;
           }
-        }
 
-        final prefs = await SharedPreferences.getInstance();
-        final String encoded = jsonEncode(finalEvents.map((e) => e.toJson()).toList());
-        await prefs.setString('saved_events', encoded);
-
-        onEventsUpdated();
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.get('importSuccess'))),
+          importedEvents.add(
+            EventItem(
+              id: row[0].toString(),
+              description: row[1].toString(),
+              date: DateTime.parse(row[2].toString()),
+              iconCodePoint: row.length >= 4 ? int.tryParse(row[3].toString()) ?? parsedCategory.defaultIcon.codePoint : parsedCategory.defaultIcon.codePoint,
+              colorValue: row.length >= 5 ? int.tryParse(row[4].toString()) ?? parsedCategory.defaultColor.toARGB32() : parsedCategory.defaultColor.toARGB32(),
+              category: parsedCategory,
+              remindDaysBefore: parsedRemindDays,
+            ),
           );
         }
+      }
+
+      List<EventItem> finalEvents = [];
+      
+      if (overwrite) {
+        finalEvents = importedEvents;
+      } else {
+        finalEvents = List.from(events);
+        for (var imported in importedEvents) {
+          int existingIndex = finalEvents.indexWhere(
+            (e) => e.description.trim().toLowerCase() == imported.description.trim().toLowerCase(),
+          );
+
+          if (existingIndex != -1) {
+            finalEvents[existingIndex].date = imported.date;
+            finalEvents[existingIndex].iconCodePoint = imported.iconCodePoint;
+            finalEvents[existingIndex].colorValue = imported.colorValue;
+            finalEvents[existingIndex].category = imported.category;
+            finalEvents[existingIndex].remindDaysBefore = imported.remindDaysBefore;
+          } else {
+            finalEvents.add(imported);
+          }
+        }
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final String encoded = jsonEncode(finalEvents.map((e) => e.toJson()).toList());
+      await prefs.setString('saved_events', encoded);
+
+      onEventsUpdated();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.get('importSuccess'))),
+        );
       }
     } catch (e) {
       if (context.mounted) {
