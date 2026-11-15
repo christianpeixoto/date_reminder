@@ -686,67 +686,57 @@ class _EventListScreenState extends State<EventListScreen> {
                     const SizedBox(height: 20),
                     const Text('Choose Icon:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 8),
-                    SizedBox(
-                      height: 45,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: availableIcons.length,
-                        itemBuilder: (context, index) {
-                          final icon = availableIcons[index];
-                          final isSelected = selectedIconCode == icon.codePoint;
-                          return GestureDetector(
-                            onTap: () {
-                              setDialogState(() {
-                                selectedIconCode = icon.codePoint;
-                              });
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: isSelected ? Colors.blue.shade100 : Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(8),
-                                border: isSelected ? Border.all(color: Colors.blue, width: 2) : null,
-                              ),
-                              child: Icon(icon, size: 24, color: isSelected ? Colors.blue.shade800 : Colors.grey.shade700),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: availableIcons.map((icon) {
+                        final isSelected = selectedIconCode == icon.codePoint;
+                        return GestureDetector(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedIconCode = icon.codePoint;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.blue.shade100 : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(8),
+                              border: isSelected ? Border.all(color: Colors.blue, width: 2) : null,
                             ),
-                          );
-                        },
-                      ),
+                            child: Icon(icon, size: 24, color: isSelected ? Colors.blue.shade800 : Colors.grey.shade700),
+                          ),
+                        );
+                      }).toList(),
                     ),
                     const SizedBox(height: 16),
                     const Text('Choose Color:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 8),
-                    SizedBox(
-                      height: 40,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: availableColors.length,
-                        itemBuilder: (context, index) {
-                          final color = availableColors[index];
-                          final isSelected = selectedColorValue == color.toARGB32();
-                          return GestureDetector(
-                            onTap: () {
-                              setDialogState(() {
-                                selectedColorValue = color.toARGB32();
-                              });
-                            },
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                                border: isSelected
-                                    ? Border.all(color: Colors.white, width: 2.5)
-                                    : null,
-                              ),
-                              child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: availableColors.map((color) {
+                        final isSelected = selectedColorValue == color.toARGB32();
+                        return GestureDetector(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedColorValue = color.toARGB32();
+                            });
+                          },
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(color: Colors.white, width: 2.5)
+                                  : null,
                             ),
-                          );
-                        },
-                      ),
+                            child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),
@@ -874,82 +864,178 @@ class _EventListScreenState extends State<EventListScreen> {
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   elevation: 2,
+                  clipBehavior: Clip.antiAlias,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: event.color.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                event.icon,
-                                size: 26,
-                                color: event.color,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    event.description,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    l10n.get(event.category.nameKey),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: event.color,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
+                        // Colored accent strip on the left edge
+                        Container(
+                          width: 5,
+                          color: event.color,
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                IconButton(
-                                  constraints: const BoxConstraints(),
-                                  padding: const EdgeInsets.all(6),
-                                  icon: Icon(Icons.edit_outlined, size: 18, color: Colors.grey.shade400),
-                                  tooltip: l10n.get('editEvent'),
-                                  onPressed: () => _showEventDialog(event: event),
-                                ),
-                                const SizedBox(width: 4),
-                                PopupMenuButton<String>(
-                                  constraints: const BoxConstraints(),
-                                  padding: EdgeInsets.zero,
-                                  icon: Icon(Icons.more_vert, size: 18, color: Colors.grey.shade400),
-                                  onSelected: (value) {
-                                    if (value == 'delete') {
-                                      _confirmDelete(event, index);
-                                    }
-                                  },
-                                  itemBuilder: (BuildContext context) => [
-                                    PopupMenuItem<String>(
-                                      value: 'delete',
-                                      child: Row(
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: event.color.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        event.icon,
+                                        size: 26,
+                                        color: event.color,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                          const SizedBox(width: 8),
                                           Text(
-                                            l10n.get('deleteAction'),
-                                            style: const TextStyle(color: Colors.red, fontSize: 14),
+                                            event.description,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            l10n.get(event.category.nameKey),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: event.color,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          constraints: const BoxConstraints(),
+                                          padding: const EdgeInsets.all(6),
+                                          icon: Icon(Icons.edit_outlined, size: 18, color: Colors.grey.shade400),
+                                          tooltip: l10n.get('editEvent'),
+                                          onPressed: () => _showEventDialog(event: event),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        PopupMenuButton<String>(
+                                          constraints: const BoxConstraints(),
+                                          padding: EdgeInsets.zero,
+                                          icon: Icon(Icons.more_vert, size: 18, color: Colors.grey.shade400),
+                                          onSelected: (value) {
+                                            if (value == 'delete') {
+                                              _confirmDelete(event, index);
+                                            }
+                                          },
+                                          itemBuilder: (BuildContext context) => [
+                                            PopupMenuItem<String>(
+                                              value: 'delete',
+                                              child: Row(
+                                                children: [
+                                                  const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    l10n.get('deleteAction'),
+                                                    style: const TextStyle(color: Colors.red, fontSize: 14),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                const Divider(height: 1, thickness: 0.5),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.grey.shade800
+                                                : Colors.grey.shade100,
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.grey.shade700
+                                                  : Colors.grey.shade300,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.calendar_today, size: 12, color: Colors.grey),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                DateFormat('dd-MM-yyyy').format(event.date),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context).brightness == Brightness.dark
+                                                      ? Colors.white70
+                                                      : Colors.black87,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: event.color.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            '${event.yearsDifference} yrs',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: event.color,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    RichText(
+                                      text: TextSpan(
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.white60
+                                              : Colors.grey,
+                                          fontFamily: 'Roboto',
+                                        ),
+                                        children: [
+                                          const TextSpan(text: 'Next in: '),
+                                          TextSpan(
+                                            text: '${event.daysUntilNext} days',
+                                            style: TextStyle(
+                                              color: event.color,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -958,88 +1044,7 @@ class _EventListScreenState extends State<EventListScreen> {
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        const Divider(height: 1, thickness: 0.5),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey.shade800
-                                        : Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.grey.shade700
-                                          : Colors.grey.shade300,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.calendar_today, size: 12, color: Colors.grey),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        DateFormat('dd-MM-yyyy').format(event.date),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.white70
-                                              : Colors.black87,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: event.color.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    '${event.yearsDifference} yrs',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: event.color,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            RichText(
-                              text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white60
-                                      : Colors.grey,
-                                  fontFamily: 'Roboto',
-                                ),
-                                children: [
-                                  const TextSpan(text: 'Next in: '),
-                                  TextSpan(
-                                    text: '${event.daysUntilNext} days',
-                                    style: TextStyle(
-                                      color: event.color,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
