@@ -1104,8 +1104,59 @@ class SettingsScreen extends StatelessWidget {
       );
 
       if (result != null && result.files.single.name.isNotEmpty) {
-        final PlatformFile platformFile = result.files.single;
+        bool overwrite = false;
         
+        // Show dialog with checkbox option before importing
+        final bool? shouldImport = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext dialogContext) {
+            bool localOverwrite = false;
+            return StatefulBuilder(
+              builder: (context, setDialogState) {
+                return AlertDialog(
+                  title: Text(l10n.get('importCsv')),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Choose how you want to import your events:'),
+                      const SizedBox(height: 12),
+                      CheckboxListTile(
+                        title: const Text('Overwrite existing events'),
+                        value: localOverwrite,
+                        onChanged: (val) {
+                          setDialogState(() {
+                            localOverwrite = val ?? false;
+                          });
+                        },
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: Text(l10n.get('cancel')),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        overwrite = localOverwrite;
+                        Navigator.of(dialogContext).pop(true);
+                      },
+                      child: Text(l10n.get('save')),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+
+        if (shouldImport != true) return;
+
+        final PlatformFile platformFile = result.files.single;
+
         String csvContent = '';
         if (platformFile.bytes != null) {
           csvContent = utf8.decode(platformFile.bytes!);
@@ -1151,8 +1202,33 @@ class SettingsScreen extends StatelessWidget {
           }
         }
 
+        List<EventItem> finalEvents = [];
+        
+        if (overwrite) {
+          // Overwrite everything with imported events
+          finalEvents = importedEvents;
+        } else {
+          // Merge logic: update matching descriptions, add new ones
+          finalEvents = List.from(events);
+          for (var imported in importedEvents) {
+            int existingIndex = finalEvents.indexWhere(
+              (e) => e.description.trim().toLowerCase() == imported.description.trim().toLowerCase(),
+            );
+
+            if (existingIndex != -1) {
+              finalEvents[existingIndex].date = imported.date;
+              finalEvents[existingIndex].iconCodePoint = imported.iconCodePoint;
+              finalEvents[existingIndex].colorValue = imported.colorValue;
+              finalEvents[existingIndex].category = imported.category;
+              finalEvents[existingIndex].remindDaysBefore = imported.remindDaysBefore;
+            } else {
+              finalEvents.add(imported);
+            }
+          }
+        }
+
         final prefs = await SharedPreferences.getInstance();
-        final String encoded = jsonEncode(importedEvents.map((e) => e.toJson()).toList());
+        final String encoded = jsonEncode(finalEvents.map((e) => e.toJson()).toList());
         await prefs.setString('saved_events', encoded);
 
         onEventsUpdated();
