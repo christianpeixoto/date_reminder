@@ -1,0 +1,8 @@
+Keep track of important recurring dates without relying on external servers or accounts.
+
+Features:
+- Track fixed annual events such as birthdays, anniversaries, memorials, graduations, and milestones.
+- Schedule local advance reminders on the event day or 1, 3, or 7 days beforehand.
+- Customize categories, icons, colors, and light or dark appearance.
+- Export and import your events as CSV files for backup or transfer.
+- Available in English, Portuguese (Portugal and Brazil), and Spanish.

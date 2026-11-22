@@ -1,0 +1,8 @@
+Registe datas importantes recorrentes sem depender de servidores externos ou contas na nuvem.
+
+Funcionalidades:
+- Acompanhe eventos fixos como aniversários, casamentos, memórias, graduações e marcos.
+- Agende lembretes locais no próprio dia ou com 1, 3 ou 7 dias de antecedência.
+- Personalize categorias, ícones, cores e tema claro ou escuro.
+- Exporte e importe os seus eventos em ficheiro CSV.
+- Disponível em Português (PT e BR), Inglês e Espanhol.

@@ -1,0 +1,3 @@
+- Added Spanish and Brazilian Portuguese localizations.
+- Fixed activity class package alignment for release builds.
+- Incremented release version code.

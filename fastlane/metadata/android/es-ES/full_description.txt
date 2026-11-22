@@ -1,0 +1,8 @@
+Lleva el control de fechas importantes recurrentes sin depender de servidores externos ni cuentas.
+
+Funciones:
+- Registra eventos fijos como cumpleaños, aniversarios, conmemoraciones, graduaciones y fechas clave.
+- Configura recordatorios locales el mismo día o con 1, 3 o 7 días de antelación.
+- Personaliza categorías, iconos, colores y modo claro u oscuro.
+- Exporta e importa tus eventos mediante archivos CSV.
+- Disponible en Español, Inglés y Portugués.
