@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:csv/csv.dart';
@@ -13,7 +14,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:file_picker/file_picker.dart';
 
 // ==========================================
-// EVENT CATEGORIES
+// EVENT CATEGORIES & RECURRENCE
 // ==========================================
 enum EventCategory {
   birthday,
@@ -24,52 +25,154 @@ enum EventCategory {
   home,
   pet,
   health,
+  medication,
+  finance,
+  routine,
   other,
 }
+
+enum RecurrenceType {
+  yearly,
+  monthly,
+  biweekly,
+  weekly,
+}
+
+const List<IconData> kAppIcons = [
+  Icons.event_note,
+  Icons.cake,
+  Icons.favorite,
+  Icons.filter_vintage,
+  Icons.local_hospital,
+  Icons.medication,
+  Icons.payments,
+  Icons.repeat,
+  Icons.alarm,
+  Icons.shopping_cart,
+  Icons.cleaning_services,
+  Icons.receipt_long,
+  Icons.directions_car,
+  Icons.work,
+  Icons.flight,
+  Icons.fitness_center,
+  Icons.school,
+  Icons.pets,
+  Icons.home,
+  Icons.star,
+];
 
 extension EventCategoryExtension on EventCategory {
   String get nameKey {
     switch (this) {
-      case EventCategory.birthday: return 'catBirthday';
-      case EventCategory.anniversary: return 'catAnniversary';
-      case EventCategory.memorial: return 'catMemorial';
-      case EventCategory.work: return 'catWork';
-      case EventCategory.graduation: return 'catGraduation';
-      case EventCategory.home: return 'catHome';
-      case EventCategory.pet: return 'catPet';
-      case EventCategory.health: return 'catHealth';
-      case EventCategory.other: return 'catOther';
+      case EventCategory.birthday:
+        return 'catBirthday';
+      case EventCategory.anniversary:
+        return 'catAnniversary';
+      case EventCategory.memorial:
+        return 'catMemorial';
+      case EventCategory.work:
+        return 'catWork';
+      case EventCategory.graduation:
+        return 'catGraduation';
+      case EventCategory.home:
+        return 'catHome';
+      case EventCategory.pet:
+        return 'catPet';
+      case EventCategory.health:
+        return 'catHealth';
+      case EventCategory.medication:
+        return 'catMedication';
+      case EventCategory.finance:
+        return 'catFinance';
+      case EventCategory.routine:
+        return 'catRoutine';
+      case EventCategory.other:
+        return 'catOther';
     }
   }
 
   IconData get defaultIcon {
     switch (this) {
-      case EventCategory.birthday: return Icons.cake;
-      case EventCategory.anniversary: return Icons.favorite;
-      case EventCategory.memorial: return Icons.filter_vintage;
-      case EventCategory.work: return Icons.work;
-      case EventCategory.graduation: return Icons.school;
-      case EventCategory.home: return Icons.home;
-      case EventCategory.pet: return Icons.pets;
-      case EventCategory.health: return Icons.local_hospital;
-      case EventCategory.other: return Icons.event_note;
+      case EventCategory.birthday:
+        return Icons.cake;
+      case EventCategory.anniversary:
+        return Icons.favorite;
+      case EventCategory.memorial:
+        return Icons.filter_vintage;
+      case EventCategory.work:
+        return Icons.work;
+      case EventCategory.graduation:
+        return Icons.school;
+      case EventCategory.home:
+        return Icons.home;
+      case EventCategory.pet:
+        return Icons.pets;
+      case EventCategory.health:
+        return Icons.local_hospital;
+      case EventCategory.medication:
+        return Icons.medication;
+      case EventCategory.finance:
+        return Icons.payments;
+      case EventCategory.routine:
+        return Icons.repeat;
+      case EventCategory.other:
+        return Icons.event_note;
     }
   }
 
   Color get defaultColor {
     switch (this) {
-      case EventCategory.birthday: return Colors.blue;
-      case EventCategory.anniversary: return Colors.amber.shade700;
-      case EventCategory.memorial: return Colors.purple;
-      case EventCategory.work: return Colors.pinkAccent;
-      case EventCategory.graduation: return Colors.amber;
-      case EventCategory.home: return Colors.teal;
-      case EventCategory.pet: return Colors.orange;
-      case EventCategory.health: return Colors.green;
-      case EventCategory.other: return Colors.indigo;
+      case EventCategory.birthday:
+        return Colors.blue;
+      case EventCategory.anniversary:
+        return Colors.amber.shade700;
+      case EventCategory.memorial:
+        return Colors.purple;
+      case EventCategory.work:
+        return Colors.pinkAccent;
+      case EventCategory.graduation:
+        return Colors.amber;
+      case EventCategory.home:
+        return Colors.teal;
+      case EventCategory.pet:
+        return Colors.orange;
+      case EventCategory.health:
+        return Colors.green;
+      case EventCategory.medication:
+        return Colors.redAccent;
+      case EventCategory.finance:
+        return Colors.green.shade700;
+      case EventCategory.routine:
+        return Colors.deepPurple;
+      case EventCategory.other:
+        return Colors.indigo;
     }
   }
+
+  static List<EventCategory> categoriesFor(RecurrenceType recurrence) {
+    if (recurrence == RecurrenceType.yearly) {
+      return const [
+        EventCategory.birthday,
+        EventCategory.anniversary,
+        EventCategory.memorial,
+        EventCategory.graduation,
+        EventCategory.pet,
+        EventCategory.other,
+      ];
+    }
+    return const [
+      EventCategory.medication,
+      EventCategory.finance,
+      EventCategory.routine,
+      EventCategory.health,
+      EventCategory.work,
+      EventCategory.home,
+      EventCategory.pet,
+      EventCategory.other,
+    ];
+  }
 }
+
 
 // ==========================================
 // I18N / Localizations Helper
@@ -87,11 +190,15 @@ class AppLocalizations {
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'appTitle': 'Date Reminder: Fixed Events',
+      'tabMilestones': 'Milestones',
+      'tabRecurring': 'Recurring',
       'noEvents': 'No events added yet. Tap + to add one!',
+      'noRecurring': 'No weekly or monthly reminders yet. Tap + to add one!',
       'addEvent': 'Add Event',
       'editEvent': 'Edit Event',
       'description': 'Description',
       'pickDate': 'Pick Date',
+      'startsOn': 'Starts on',
       'cancel': 'Cancel',
       'save': 'Save',
       'add': 'Add',
@@ -121,20 +228,43 @@ class AppLocalizations {
       'catHome': 'Home & Living',
       'catPet': 'Pet Milestone',
       'catHealth': 'Health & Fitness',
+      'catMedication': 'Medication',
+      'catFinance': 'Salary & Bills',
+      'catRoutine': 'Routine & Chores',
       'catOther': 'Other Event',
       'remindBefore': 'Reminder Advance',
       'remind0': 'On the day of event',
       'remind1': '1 day before',
       'remind3': '3 days before',
       'remind7': '1 week before',
+      'repeat': 'Repeat',
+      'recYearly': 'Yearly (Fixed Date)',
+      'recMonthly': 'Monthly (Day of Month)',
+      'recBiweekly': 'Every 2 Weeks',
+      'recWeekly': 'Weekly (Day of Week)',
+      'dayOfWeek': 'Day of Week',
+      'dayOfMonth': 'Day of Month',
+      'everyBiweekly': 'Every 2 weeks',
+      'everyDayOfMonth': 'Day',
+      'weekday1': 'Monday',
+      'weekday2': 'Tuesday',
+      'weekday3': 'Wednesday',
+      'weekday4': 'Thursday',
+      'weekday5': 'Friday',
+      'weekday6': 'Saturday',
+      'weekday7': 'Sunday',
     },
     'pt': {
       'appTitle': 'Date Reminder: Fixed Events',
+      'tabMilestones': 'Marcos Anuais',
+      'tabRecurring': 'Recorrentes',
       'noEvents': 'Sem eventos adicionados. Toque em + para adicionar um!',
+      'noRecurring': 'Sem lembretes semanais ou mensais. Toque em + para adicionar!',
       'addEvent': 'Adicionar Evento',
       'editEvent': 'Editar Evento',
       'description': 'Descrição',
       'pickDate': 'Escolher Data',
+      'startsOn': 'Início em',
       'cancel': 'Cancelar',
       'save': 'Guardar',
       'add': 'Adicionar',
@@ -164,20 +294,43 @@ class AppLocalizations {
       'catHome': 'Casa e Habitação',
       'catPet': 'Evento de Mascote',
       'catHealth': 'Saúde e Bem-estar',
+      'catMedication': 'Medicação',
+      'catFinance': 'Salário e Contas',
+      'catRoutine': 'Rotina e Tarefas',
       'catOther': 'Outro Evento',
       'remindBefore': 'Antecedência do Lembrete',
       'remind0': 'No dia do evento',
       'remind1': '1 dia antes',
       'remind3': '3 dias antes',
       'remind7': '1 semana antes',
+      'repeat': 'Repetir',
+      'recYearly': 'Anual (Data Fixa)',
+      'recMonthly': 'Mensal (Dia do Mês)',
+      'recBiweekly': 'A cada 2 Semanas',
+      'recWeekly': 'Semanal (Dia da Semana)',
+      'dayOfWeek': 'Dia da Semana',
+      'dayOfMonth': 'Dia do Mês',
+      'everyBiweekly': 'A cada 2 semanas',
+      'everyDayOfMonth': 'Dia',
+      'weekday1': 'Segunda-feira',
+      'weekday2': 'Terça-feira',
+      'weekday3': 'Quarta-feira',
+      'weekday4': 'Quinta-feira',
+      'weekday5': 'Sexta-feira',
+      'weekday6': 'Sábado',
+      'weekday7': 'Domingo',
     },
     'es': {
       'appTitle': 'Date Reminder: Eventos Fijos',
+      'tabMilestones': 'Hitos Anuales',
+      'tabRecurring': 'Recurrentes',
       'noEvents': '¡No hay eventos añadidos. Toca + para añadir uno!',
+      'noRecurring': 'Sin recordatorios semanales o mensuales. ¡Toca + para añadir!',
       'addEvent': 'Añadir Evento',
       'editEvent': 'Editar Evento',
       'description': 'Descripción',
       'pickDate': 'Elegir Fecha',
+      'startsOn': 'Empieza el',
       'cancel': 'Cancelar',
       'save': 'Guardar',
       'add': 'Añadir',
@@ -207,17 +360,35 @@ class AppLocalizations {
       'catHome': 'Hogar y Vivienda',
       'catPet': 'Hito de Mascota',
       'catHealth': 'Salud y Bienestar',
+      'catMedication': 'Medicación',
+      'catFinance': 'Salario y Facturas',
+      'catRoutine': 'Rutina y Tareas',
       'catOther': 'Otro Evento',
       'remindBefore': 'Anticipación del Recordatorio',
       'remind0': 'El día del evento',
       'remind1': '1 día antes',
       'remind3': '3 días antes',
       'remind7': '1 semana antes',
+      'repeat': 'Repetir',
+      'recYearly': 'Anual (Fecha Fija)',
+      'recMonthly': 'Mensual (Día del Mes)',
+      'recBiweekly': 'Cada 2 Semanas',
+      'recWeekly': 'Semanal (Día de la Semana)',
+      'dayOfWeek': 'Día de la Semana',
+      'dayOfMonth': 'Día del Mes',
+      'everyBiweekly': 'Cada 2 semanas',
+      'everyDayOfMonth': 'Día',
+      'weekday1': 'Lunes',
+      'weekday2': 'Martes',
+      'weekday3': 'Miércoles',
+      'weekday4': 'Jueves',
+      'weekday5': 'Viernes',
+      'weekday6': 'Sábado',
+      'weekday7': 'Domingo',
     },
   };
 
   String get(String key) {
-    // Check exact match (e.g. 'pt_BR'), fallback to language code ('pt'), then English
     final lang = locale.languageCode;
     final country = locale.countryCode;
     final fullKey = country != null ? '${lang}_$country' : lang;
@@ -226,6 +397,23 @@ class AppLocalizations {
         _localizedValues[lang]?[key] ??
         _localizedValues['en']?[key] ??
         key;
+  }
+
+  String weekdayName(int weekday) {
+    return get('weekday$weekday');
+  }
+
+  String recurrenceLabel(RecurrenceType recurrence) {
+    switch (recurrence) {
+      case RecurrenceType.yearly:
+        return get('recYearly');
+      case RecurrenceType.monthly:
+        return get('recMonthly');
+      case RecurrenceType.biweekly:
+        return get('recBiweekly');
+      case RecurrenceType.weekly:
+        return get('recWeekly');
+    }
   }
 }
 
@@ -249,7 +437,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   tz.initializeTimeZones();
 
   const AndroidInitializationSettings initializationSettingsAndroid =
@@ -285,11 +473,11 @@ class EventTrackerAppState extends State<EventTrackerApp> {
 
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     final String? langCode = prefs.getString('saved_language_code');
     final String? countryCode = prefs.getString('saved_country_code');
     final String? themeStr = prefs.getString('saved_theme_mode');
-    
+
     ThemeMode loadedTheme = ThemeMode.system;
     if (themeStr == 'light') loadedTheme = ThemeMode.light;
     if (themeStr == 'dark') loadedTheme = ThemeMode.dark;
@@ -370,6 +558,9 @@ class EventItem {
   String id;
   String description;
   DateTime date;
+  RecurrenceType recurrence;
+  int weekday; // 1 (Mon) .. 7 (Sun)
+  int dayOfMonth; // 1 .. 31
   int iconCodePoint;
   int colorValue;
   EventCategory category;
@@ -379,34 +570,27 @@ class EventItem {
     required this.id,
     required this.description,
     required this.date,
+    RecurrenceType? recurrence,
+    int? weekday,
+    int? dayOfMonth,
     int? iconCodePoint,
     int? colorValue,
     EventCategory? category,
     int? remindDaysBefore,
-  })  : category = category ?? EventCategory.other,
+  })  : recurrence = recurrence ?? RecurrenceType.yearly,
+        weekday = (weekday ?? date.weekday).clamp(1, 7),
+        dayOfMonth = (dayOfMonth ?? date.day).clamp(1, 31),
+        category = category ?? EventCategory.other,
         remindDaysBefore = remindDaysBefore ?? 0,
-        iconCodePoint = iconCodePoint ?? (category?.defaultIcon.codePoint ?? 0xe123),
-        colorValue = colorValue ?? (category?.defaultColor.toARGB32() ?? 0xFF2196F3);
+        iconCodePoint =
+            iconCodePoint ?? (category?.defaultIcon.codePoint ?? 0xe123),
+        colorValue =
+            colorValue ?? (category?.defaultColor.toARGB32() ?? 0xFF2196F3);
+
+  bool get isMilestone => recurrence == RecurrenceType.yearly;
 
   IconData get icon {
-    const knownIcons = [
-      Icons.event_note,
-      Icons.cake,
-      Icons.favorite,
-      Icons.filter_vintage,
-      Icons.local_hospital,
-      Icons.receipt_long,
-      Icons.directions_car,
-      Icons.work,
-      Icons.flight,
-      Icons.fitness_center,
-      Icons.school,
-      Icons.pets,
-      Icons.home,
-      Icons.star,
-    ];
-
-    for (final ic in knownIcons) {
+    for (final ic in kAppIcons) {
       if (ic.codePoint == iconCodePoint) {
         return ic;
       }
@@ -420,29 +604,82 @@ class EventItem {
         'id': id,
         'description': description,
         'date': date.toIso8601String(),
+        'recurrence': recurrence.name,
+        'weekday': weekday,
+        'dayOfMonth': dayOfMonth,
         'iconCodePoint': iconCodePoint,
         'colorValue': colorValue,
         'category': category.name,
         'remindDaysBefore': remindDaysBefore,
       };
 
-  factory EventItem.fromJson(Map<String, dynamic> json) => EventItem(
-        id: json['id'],
-        description: json['description'],
-        date: DateTime.parse(json['date']),
-        iconCodePoint: json['iconCodePoint'],
-        colorValue: json['colorValue'],
-        category: EventCategory.values.firstWhere(
-          (e) => e.name == json['category'],
-          orElse: () => EventCategory.other,
-        ),
-        remindDaysBefore: json['remindDaysBefore'] ?? 0,
-      );
+  factory EventItem.fromJson(Map<String, dynamic> json) {
+    final parsedDate = DateTime.parse(json['date']);
+    return EventItem(
+      id: json['id'],
+      description: json['description'],
+      date: parsedDate,
+      recurrence: RecurrenceType.values.firstWhere(
+        (r) => r.name == json['recurrence'],
+        orElse: () => RecurrenceType.yearly,
+      ),
+      weekday: json['weekday'] ?? parsedDate.weekday,
+      dayOfMonth: json['dayOfMonth'] ?? parsedDate.day,
+      iconCodePoint: json['iconCodePoint'],
+      colorValue: json['colorValue'],
+      category: EventCategory.values.firstWhere(
+        (e) => e.name == json['category'],
+        orElse: () => EventCategory.other,
+      ),
+      remindDaysBefore: json['remindDaysBefore'] ?? 0,
+    );
+  }
+
+  static DateTime _safeMonthDate(int year, int month, int day) {
+    final normalizedYear = year + ((month - 1) ~/ 12);
+    final normalizedMonth = ((month - 1) % 12) + 1;
+    final lastDay = DateTime(normalizedYear, normalizedMonth + 1, 0).day;
+    return DateTime(normalizedYear, normalizedMonth, min(day, lastDay));
+  }
+
+  DateTime nextOccurrenceOnDate([DateTime? fromDate]) {
+    final now = fromDate ?? DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    switch (recurrence) {
+      case RecurrenceType.yearly:
+        var next = _safeMonthDate(today.year, date.month, date.day);
+        if (next.isBefore(today)) {
+          next = _safeMonthDate(today.year + 1, date.month, date.day);
+        }
+        return next;
+
+      case RecurrenceType.monthly:
+        var next = _safeMonthDate(today.year, today.month, dayOfMonth);
+        if (next.isBefore(today)) {
+          next = _safeMonthDate(today.year, today.month + 1, dayOfMonth);
+        }
+        return next;
+
+      case RecurrenceType.weekly:
+        final diff = (weekday - today.weekday + 7) % 7;
+        return today.add(Duration(days: diff));
+
+      case RecurrenceType.biweekly:
+        final start = DateTime(date.year, date.month, date.day);
+        if (!start.isBefore(today)) return start;
+        final daysSinceStart = today.difference(start).inDays;
+        final remainder = daysSinceStart % 14;
+        final daysToAdd = remainder == 0 ? 0 : 14 - remainder;
+        return today.add(Duration(days: daysToAdd));
+    }
+  }
 
   int get yearsDifference {
     final now = DateTime.now();
     int years = now.year - date.year;
-    if (now.month < date.month || (now.month == date.month && now.day < date.day)) {
+    if (now.month < date.month ||
+        (now.month == date.month && now.day < date.day)) {
       years--;
     }
     return years < 0 ? 0 : years;
@@ -451,23 +688,43 @@ class EventItem {
   int get daysUntilNext {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    DateTime nextOccurrence = DateTime(today.year, date.month, date.day);
-
-    if (nextOccurrence.isBefore(today)) {
-      nextOccurrence = DateTime(today.year + 1, date.month, date.day);
-    }
-    return nextOccurrence.difference(today).inDays;
+    return nextOccurrenceOnDate(today).difference(today).inDays;
   }
 
-  DateTime get nextOccurrenceDate {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    DateTime nextOccurrence = DateTime(today.year, date.month, date.day, 9, 0);
+  DateTime? nextReminderTriggerTime([DateTime? referenceNow]) {
+    final now = referenceNow ?? DateTime.now();
+    DateTime searchFrom = DateTime(now.year, now.month, now.day);
 
-    if (nextOccurrence.isBefore(now)) {
-      nextOccurrence = DateTime(today.year + 1, date.month, date.day, 9, 0);
+    for (int i = 0; i < 400; i++) {
+      final occurrence = nextOccurrenceOnDate(searchFrom);
+      final trigger = DateTime(
+        occurrence.year,
+        occurrence.month,
+        occurrence.day,
+        9,
+        0,
+      ).subtract(Duration(days: remindDaysBefore));
+
+      if (trigger.isAfter(now)) {
+        return trigger;
+      }
+
+      searchFrom = occurrence.add(const Duration(days: 1));
     }
-    return nextOccurrence.subtract(Duration(days: remindDaysBefore));
+    return null;
+  }
+
+  String scheduleBadgeLabel(AppLocalizations l10n) {
+    switch (recurrence) {
+      case RecurrenceType.yearly:
+        return '$yearsDifference yrs';
+      case RecurrenceType.weekly:
+        return l10n.weekdayName(weekday);
+      case RecurrenceType.biweekly:
+        return '${l10n.get('everyBiweekly')} (${l10n.weekdayName(date.weekday)})';
+      case RecurrenceType.monthly:
+        return '${l10n.get('everyDayOfMonth')} $dayOfMonth';
+    }
   }
 }
 
@@ -478,25 +735,13 @@ class EventListScreen extends StatefulWidget {
   State<EventListScreen> createState() => _EventListScreenState();
 }
 
-class _EventListScreenState extends State<EventListScreen> {
+class _EventListScreenState extends State<EventListScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   List<EventItem> _events = [];
+  late TabController _tabController;
+  bool _isFabMenuOpen = false;
 
-  final List<IconData> availableIcons = [
-    Icons.event_note,
-    Icons.cake,
-    Icons.favorite,
-    Icons.filter_vintage,
-    Icons.local_hospital,
-    Icons.receipt_long,
-    Icons.directions_car,
-    Icons.work,
-    Icons.flight,
-    Icons.fitness_center,
-    Icons.school,
-    Icons.pets,
-    Icons.home,
-    Icons.star,
-  ];
+  final List<IconData> availableIcons = kAppIcons;
 
   final List<Color> availableColors = [
     Colors.pinkAccent,
@@ -506,6 +751,7 @@ class _EventListScreenState extends State<EventListScreen> {
     Colors.purple,
     Colors.pink,
     Colors.red,
+    Colors.redAccent,
     Colors.orange,
     Colors.amber,
     Colors.green,
@@ -516,15 +762,31 @@ class _EventListScreenState extends State<EventListScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _tabController = TabController(length: 2, vsync: this);
     _requestPermissions();
     _loadEvents();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _rescheduleAllNotifications(context);
+    }
   }
 
   Future<void> _requestPermissions() async {
     final androidImplementation =
         flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
-    
+
     await androidImplementation?.requestNotificationsPermission();
   }
 
@@ -538,6 +800,9 @@ class _EventListScreenState extends State<EventListScreen> {
         _sortEvents();
       });
     }
+    if (mounted) {
+      await _rescheduleAllNotifications(context);
+    }
   }
 
   Future<void> _saveEvents() async {
@@ -550,9 +815,15 @@ class _EventListScreenState extends State<EventListScreen> {
     _events.sort((a, b) => a.daysUntilNext.compareTo(b.daysUntilNext));
   }
 
-  Future<void> _scheduleNotification(EventItem event, BuildContext context) async {
+  Future<void> _scheduleNotification(
+      EventItem event, BuildContext context) async {
     final int notificationId = event.id.hashCode.abs();
     final l10n = AppLocalizations.of(context);
+    final DateTime? triggerTime = event.nextReminderTriggerTime();
+
+    await flutterLocalNotificationsPlugin.cancel(notificationId);
+
+    if (triggerTime == null) return;
 
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'event_channel_id',
@@ -566,7 +837,7 @@ class _EventListScreenState extends State<EventListScreen> {
         NotificationDetails(android: androidDetails);
 
     final tz.TZDateTime scheduledDate =
-        tz.TZDateTime.from(event.nextOccurrenceDate, tz.local);
+        tz.TZDateTime.from(triggerTime, tz.local);
 
     if (scheduledDate.isAfter(tz.TZDateTime.now(tz.local))) {
       await flutterLocalNotificationsPlugin.zonedSchedule(
@@ -578,8 +849,13 @@ class _EventListScreenState extends State<EventListScreen> {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.dateAndTime,
       );
+    }
+  }
+
+  Future<void> _rescheduleAllNotifications(BuildContext context) async {
+    for (final event in _events) {
+      await _scheduleNotification(event, context);
     }
   }
 
@@ -588,14 +864,129 @@ class _EventListScreenState extends State<EventListScreen> {
     await flutterLocalNotificationsPlugin.cancel(notificationId);
   }
 
-  void _showEventDialog({EventItem? event}) {
+  void _selectRecurrenceFromFab(RecurrenceType type) {
+    setState(() => _isFabMenuOpen = false);
+    _showEventDialog(initialRecurrence: type);
+  }
+
+  Widget _buildSpeedDialOption({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required RecurrenceType recurrence,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Material(
+            elevation: 3,
+            borderRadius: BorderRadius.circular(8),
+            color: isDark ? Colors.grey.shade800 : Colors.white,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => _selectRecurrenceFromFab(recurrence),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          FloatingActionButton.small(
+            heroTag: 'fab_${recurrence.name}',
+            backgroundColor: color,
+            foregroundColor: Colors.white,
+            onPressed: () => _selectRecurrenceFromFab(recurrence),
+            child: Icon(icon),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandableFab() {
+    final l10n = AppLocalizations.of(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (_isFabMenuOpen) ...[
+          _buildSpeedDialOption(
+            label: l10n.get('recYearly'),
+            icon: Icons.cake_outlined,
+            color: Colors.blue,
+            recurrence: RecurrenceType.yearly,
+          ),
+          _buildSpeedDialOption(
+            label: l10n.get('recMonthly'),
+            icon: Icons.calendar_month,
+            color: Colors.green,
+            recurrence: RecurrenceType.monthly,
+          ),
+          _buildSpeedDialOption(
+            label: l10n.get('recBiweekly'),
+            icon: Icons.date_range,
+            color: Colors.orange,
+            recurrence: RecurrenceType.biweekly,
+          ),
+          _buildSpeedDialOption(
+            label: l10n.get('recWeekly'),
+            icon: Icons.view_week,
+            color: Colors.purple,
+            recurrence: RecurrenceType.weekly,
+          ),
+        ],
+        FloatingActionButton(
+          heroTag: 'fab_main',
+          onPressed: () {
+            setState(() => _isFabMenuOpen = !_isFabMenuOpen);
+          },
+          child: AnimatedRotation(
+            turns: _isFabMenuOpen ? 0.125 : 0.0,
+            duration: const Duration(milliseconds: 180),
+            child: const Icon(Icons.add),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showEventDialog({
+    EventItem? event,
+    RecurrenceType? initialRecurrence,
+  }) {
     final isEditing = event != null;
     final descController = TextEditingController(text: event?.description ?? '');
     DateTime selectedDate = event?.date ?? DateTime.now();
-    
-    EventCategory selectedCategory = event?.category ?? EventCategory.birthday;
-    int selectedIconCode = event?.iconCodePoint ?? selectedCategory.defaultIcon.codePoint;
-    int selectedColorValue = event?.colorValue ?? selectedCategory.defaultColor.toARGB32();
+
+    RecurrenceType selectedRecurrence =
+        event?.recurrence ?? initialRecurrence ?? RecurrenceType.yearly;
+    int selectedWeekday = event?.weekday ?? DateTime.friday;
+    int selectedDayOfMonth = event?.dayOfMonth ?? 26;
+
+    final List<EventCategory> allowedCategories =
+        EventCategoryExtension.categoriesFor(selectedRecurrence);
+    EventCategory selectedCategory =
+        event?.category != null && allowedCategories.contains(event!.category)
+            ? event.category
+            : allowedCategories.first;
+
+    int selectedIconCode =
+        event?.iconCodePoint ?? selectedCategory.defaultIcon.codePoint;
+    int selectedColorValue =
+        event?.colorValue ?? selectedCategory.defaultColor.toARGB32();
     int selectedRemindDays = event?.remindDaysBefore ?? 0;
 
     final l10n = AppLocalizations.of(context);
@@ -605,24 +996,95 @@ class _EventListScreenState extends State<EventListScreen> {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final currentCategories =
+                EventCategoryExtension.categoriesFor(selectedRecurrence);
+
             return AlertDialog(
-              title: Text(isEditing ? l10n.get('editEvent') : l10n.get('addEvent')),
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(isEditing ? l10n.get('editEvent') : l10n.get('addEvent')),
+                  if (!isEditing) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.recurrenceLabel(selectedRecurrence),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (isEditing) ...[
+                      DropdownButtonFormField<RecurrenceType>(
+                        initialValue: selectedRecurrence,
+                        isExpanded: true,
+                        decoration:
+                            InputDecoration(labelText: l10n.get('repeat')),
+                        items: [
+                          DropdownMenuItem(
+                            value: RecurrenceType.yearly,
+                            child: Text(l10n.get('recYearly')),
+                          ),
+                          DropdownMenuItem(
+                            value: RecurrenceType.monthly,
+                            child: Text(l10n.get('recMonthly')),
+                          ),
+                          DropdownMenuItem(
+                            value: RecurrenceType.biweekly,
+                            child: Text(l10n.get('recBiweekly')),
+                          ),
+                          DropdownMenuItem(
+                            value: RecurrenceType.weekly,
+                            child: Text(l10n.get('recWeekly')),
+                          ),
+                        ],
+                        onChanged: (newRec) {
+                          if (newRec != null) {
+                            setDialogState(() {
+                              selectedRecurrence = newRec;
+                              final validCats =
+                                  EventCategoryExtension.categoriesFor(newRec);
+                              if (!validCats.contains(selectedCategory)) {
+                                selectedCategory = validCats.first;
+                                selectedIconCode =
+                                    selectedCategory.defaultIcon.codePoint;
+                                selectedColorValue =
+                                    selectedCategory.defaultColor.toARGB32();
+                              }
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     DropdownButtonFormField<EventCategory>(
                       initialValue: selectedCategory,
-                      decoration: InputDecoration(labelText: l10n.get('category')),
-                      items: EventCategory.values.map((cat) {
+                      isExpanded: true,
+                      decoration:
+                          InputDecoration(labelText: l10n.get('category')),
+                      items: currentCategories.map((cat) {
                         return DropdownMenuItem(
                           value: cat,
                           child: Row(
                             children: [
-                              Icon(cat.defaultIcon, color: cat.defaultColor, size: 20),
+                              Icon(cat.defaultIcon,
+                                  color: cat.defaultColor, size: 20),
                               const SizedBox(width: 10),
-                              Text(l10n.get(cat.nameKey)),
+                              Flexible(
+                                child: Text(
+                                  l10n.get(cat.nameKey),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ],
                           ),
                         );
@@ -640,17 +1102,24 @@ class _EventListScreenState extends State<EventListScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: descController,
-                      decoration: InputDecoration(labelText: l10n.get('description')),
+                      decoration:
+                          InputDecoration(labelText: l10n.get('description')),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       initialValue: selectedRemindDays,
-                      decoration: InputDecoration(labelText: l10n.get('remindBefore')),
+                      isExpanded: true,
+                      decoration:
+                          InputDecoration(labelText: l10n.get('remindBefore')),
                       items: [
-                        DropdownMenuItem(value: 0, child: Text(l10n.get('remind0'))),
-                        DropdownMenuItem(value: 1, child: Text(l10n.get('remind1'))),
-                        DropdownMenuItem(value: 3, child: Text(l10n.get('remind3'))),
-                        DropdownMenuItem(value: 7, child: Text(l10n.get('remind7'))),
+                        DropdownMenuItem(
+                            value: 0, child: Text(l10n.get('remind0'))),
+                        DropdownMenuItem(
+                            value: 1, child: Text(l10n.get('remind1'))),
+                        DropdownMenuItem(
+                            value: 3, child: Text(l10n.get('remind3'))),
+                        DropdownMenuItem(
+                            value: 7, child: Text(l10n.get('remind7'))),
                       ],
                       onChanged: (val) {
                         if (val != null) {
@@ -661,30 +1130,81 @@ class _EventListScreenState extends State<EventListScreen> {
                       },
                     ),
                     const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Date: ${DateFormat('dd-MM-yyyy').format(selectedDate)}'),
-                        ElevatedButton(
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: DateTime(1900),
-                              lastDate: DateTime(2100),
-                            );
-                            if (picked != null) {
-                              setDialogState(() {
-                                selectedDate = picked;
-                              });
-                            }
-                          },
-                          child: Text(l10n.get('pickDate')),
-                        ),
-                      ],
-                    ),
+                    if (selectedRecurrence == RecurrenceType.yearly ||
+                        selectedRecurrence == RecurrenceType.biweekly)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${selectedRecurrence == RecurrenceType.biweekly ? l10n.get('startsOn') : 'Date'}: ${DateFormat('dd-MM-yyyy').format(selectedDate)}',
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(1900),
+                                lastDate: DateTime(2100),
+                              );
+                              if (picked != null) {
+                                setDialogState(() {
+                                  selectedDate = picked;
+                                });
+                              }
+                            },
+                            child: Text(l10n.get('pickDate')),
+                          ),
+                        ],
+                      ),
+                    if (selectedRecurrence == RecurrenceType.weekly)
+                      DropdownButtonFormField<int>(
+                        initialValue: selectedWeekday,
+                        isExpanded: true,
+                        decoration:
+                            InputDecoration(labelText: l10n.get('dayOfWeek')),
+                        items: List.generate(7, (index) {
+                          final dayNum = index + 1;
+                          return DropdownMenuItem(
+                            value: dayNum,
+                            child: Text(l10n.weekdayName(dayNum)),
+                          );
+                        }),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setDialogState(() {
+                              selectedWeekday = val;
+                            });
+                          }
+                        },
+                      ),
+                    if (selectedRecurrence == RecurrenceType.monthly)
+                      DropdownButtonFormField<int>(
+                        initialValue: selectedDayOfMonth,
+                        isExpanded: true,
+                        decoration:
+                            InputDecoration(labelText: l10n.get('dayOfMonth')),
+                        items: List.generate(31, (index) {
+                          final dayNum = index + 1;
+                          return DropdownMenuItem(
+                            value: dayNum,
+                            child: Text('${l10n.get('everyDayOfMonth')} $dayNum'),
+                          );
+                        }),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setDialogState(() {
+                              selectedDayOfMonth = val;
+                            });
+                          }
+                        },
+                      ),
                     const SizedBox(height: 20),
-                    const Text('Choose Icon:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text('Choose Icon:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -700,23 +1220,34 @@ class _EventListScreenState extends State<EventListScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.blue.shade100 : Colors.grey.shade200,
+                              color: isSelected
+                                  ? Colors.blue.shade100
+                                  : Colors.grey.shade200,
                               borderRadius: BorderRadius.circular(8),
-                              border: isSelected ? Border.all(color: Colors.blue, width: 2) : null,
+                              border: isSelected
+                                  ? Border.all(color: Colors.blue, width: 2)
+                                  : null,
                             ),
-                            child: Icon(icon, size: 24, color: isSelected ? Colors.blue.shade800 : Colors.grey.shade700),
+                            child: Icon(icon,
+                                size: 24,
+                                color: isSelected
+                                    ? Colors.blue.shade800
+                                    : Colors.grey.shade700),
                           ),
                         );
                       }).toList(),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Choose Color:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text('Choose Color:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: availableColors.map((color) {
-                        final isSelected = selectedColorValue == color.toARGB32();
+                        final isSelected =
+                            selectedColorValue == color.toARGB32();
                         return GestureDetector(
                           onTap: () {
                             setDialogState(() {
@@ -733,7 +1264,10 @@ class _EventListScreenState extends State<EventListScreen> {
                                   ? Border.all(color: Colors.white, width: 2.5)
                                   : null,
                             ),
-                            child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+                            child: isSelected
+                                ? const Icon(Icons.check,
+                                    color: Colors.white, size: 18)
+                                : null,
                           ),
                         );
                       }).toList(),
@@ -749,33 +1283,49 @@ class _EventListScreenState extends State<EventListScreen> {
                 ElevatedButton(
                   onPressed: () async {
                     if (descController.text.trim().isEmpty) return;
+                    late final EventItem targetEvent;
                     setState(() {
                       if (isEditing) {
-                        _cancelNotification(event.id);
                         event.description = descController.text.trim();
                         event.date = selectedDate;
+                        event.recurrence = selectedRecurrence;
+                        event.weekday = selectedWeekday;
+                        event.dayOfMonth = selectedDayOfMonth;
                         event.iconCodePoint = selectedIconCode;
                         event.colorValue = selectedColorValue;
                         event.category = selectedCategory;
                         event.remindDaysBefore = selectedRemindDays;
-                        _scheduleNotification(event, context);
+                        targetEvent = event;
                       } else {
-                        final newEvent = EventItem(
+                        targetEvent = EventItem(
                           id: DateTime.now().millisecondsSinceEpoch.toString(),
                           description: descController.text.trim(),
                           date: selectedDate,
+                          recurrence: selectedRecurrence,
+                          weekday: selectedWeekday,
+                          dayOfMonth: selectedDayOfMonth,
                           iconCodePoint: selectedIconCode,
                           colorValue: selectedColorValue,
                           category: selectedCategory,
                           remindDaysBefore: selectedRemindDays,
                         );
-                        _events.add(newEvent);
-                        _scheduleNotification(newEvent, context);
+                        _events.add(targetEvent);
                       }
                       _sortEvents();
                       _saveEvents();
                     });
-                    Navigator.pop(dialogContext);
+
+                    final targetTabIndex = targetEvent.isMilestone ? 0 : 1;
+                    if (_tabController.index != targetTabIndex) {
+                      _tabController.animateTo(targetTabIndex);
+                    }
+
+                    if (mounted) {
+                      await _scheduleNotification(targetEvent, context);
+                    }
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                    }
                   },
                   child: Text(isEditing ? l10n.get('save') : l10n.get('add')),
                 ),
@@ -787,14 +1337,15 @@ class _EventListScreenState extends State<EventListScreen> {
     );
   }
 
-  Future<void> _confirmDelete(EventItem event, int index) async {
+  Future<void> _confirmDelete(EventItem event) async {
     final l10n = AppLocalizations.of(context);
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(l10n.get('deleteTitle')),
-          content: Text('Are you sure you want to remove "${event.description}"? This is a fixed event.'),
+          content: Text(
+              'Are you sure you want to remove "${event.description}"?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -811,12 +1362,12 @@ class _EventListScreenState extends State<EventListScreen> {
     );
 
     if (confirmed == true) {
+      await _cancelNotification(event.id);
       setState(() {
-        _cancelNotification(event.id);
-        _events.removeAt(index);
+        _events.removeWhere((e) => e.id == event.id);
         _saveEvents();
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${event.description} deleted')),
@@ -825,9 +1376,229 @@ class _EventListScreenState extends State<EventListScreen> {
     }
   }
 
+  Widget _buildEventList(List<EventItem> items, String emptyText) {
+    if (items.isEmpty) {
+      return Center(child: Text(emptyText));
+    }
+
+    final l10n = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8, bottom: 90),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final event = items[index];
+        final nextDate = event.nextOccurrenceOnDate();
+
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          elevation: 2,
+          clipBehavior: Clip.antiAlias,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 5,
+                  color: event.color,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: event.color.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                event.icon,
+                                size: 26,
+                                color: event.color,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    event.description,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    l10n.get(event.category.nameKey),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: event.color,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(6),
+                                  icon: Icon(Icons.edit_outlined,
+                                      size: 18, color: Colors.grey.shade400),
+                                  tooltip: l10n.get('editEvent'),
+                                  onPressed: () =>
+                                      _showEventDialog(event: event),
+                                ),
+                                const SizedBox(width: 4),
+                                PopupMenuButton<String>(
+                                  constraints: const BoxConstraints(),
+                                  padding: EdgeInsets.zero,
+                                  icon: Icon(Icons.more_vert,
+                                      size: 18, color: Colors.grey.shade400),
+                                  onSelected: (value) {
+                                    if (value == 'delete') {
+                                      _confirmDelete(event);
+                                    }
+                                  },
+                                  itemBuilder: (BuildContext context) => [
+                                    PopupMenuItem<String>(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.delete_outline,
+                                              size: 18, color: Colors.red),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            l10n.get('deleteAction'),
+                                            style: const TextStyle(
+                                                color: Colors.red, fontSize: 14),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        const Divider(height: 1, thickness: 0.5),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.grey.shade800
+                                        : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? Colors.grey.shade700
+                                          : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.calendar_today,
+                                          size: 12, color: Colors.grey),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        DateFormat('dd-MM-yyyy').format(
+                                          event.isMilestone
+                                              ? event.date
+                                              : nextDate,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: event.color.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    event.scheduleBadgeLabel(l10n),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: event.color,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark ? Colors.white60 : Colors.grey,
+                                  fontFamily: 'Roboto',
+                                ),
+                                children: [
+                                  const TextSpan(text: 'Next in: '),
+                                  TextSpan(
+                                    text: '${event.daysUntilNext} days',
+                                    style: TextStyle(
+                                      color: event.color,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final milestones = _events.where((e) => e.isMilestone).toList();
+    final recurring = _events.where((e) => !e.isMilestone).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -838,6 +1609,9 @@ class _EventListScreenState extends State<EventListScreen> {
             icon: const Icon(Icons.settings),
             tooltip: l10n.get('settings'),
             onPressed: () async {
+              if (_isFabMenuOpen) {
+                setState(() => _isFabMenuOpen = false);
+              }
               await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -852,210 +1626,41 @@ class _EventListScreenState extends State<EventListScreen> {
             },
           ),
         ],
-      ),
-      body: _events.isEmpty
-          ? Center(child: Text(l10n.get('noEvents')))
-          : ListView.builder(
-              padding: const EdgeInsets.only(bottom: 90),
-              itemCount: _events.length,
-              itemBuilder: (context, index) {
-                final event = _events[index];
-                
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  elevation: 2,
-                  clipBehavior: Clip.antiAlias,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Colored accent strip on the left edge
-                        Container(
-                          width: 5,
-                          color: event.color,
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: event.color.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        event.icon,
-                                        size: 26,
-                                        color: event.color,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            event.description,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            l10n.get(event.category.nameKey),
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                              color: event.color,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          constraints: const BoxConstraints(),
-                                          padding: const EdgeInsets.all(6),
-                                          icon: Icon(Icons.edit_outlined, size: 18, color: Colors.grey.shade400),
-                                          tooltip: l10n.get('editEvent'),
-                                          onPressed: () => _showEventDialog(event: event),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        PopupMenuButton<String>(
-                                          constraints: const BoxConstraints(),
-                                          padding: EdgeInsets.zero,
-                                          icon: Icon(Icons.more_vert, size: 18, color: Colors.grey.shade400),
-                                          onSelected: (value) {
-                                            if (value == 'delete') {
-                                              _confirmDelete(event, index);
-                                            }
-                                          },
-                                          itemBuilder: (BuildContext context) => [
-                                            PopupMenuItem<String>(
-                                              value: 'delete',
-                                              child: Row(
-                                                children: [
-                                                  const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                                  const SizedBox(width: 8),
-                                                  Text(
-                                                    l10n.get('deleteAction'),
-                                                    style: const TextStyle(color: Colors.red, fontSize: 14),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                const Divider(height: 1, thickness: 0.5),
-                                const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context).brightness == Brightness.dark
-                                                ? Colors.grey.shade800
-                                                : Colors.grey.shade100,
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(
-                                              color: Theme.of(context).brightness == Brightness.dark
-                                                  ? Colors.grey.shade700
-                                                  : Colors.grey.shade300,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.calendar_today, size: 12, color: Colors.grey),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                DateFormat('dd-MM-yyyy').format(event.date),
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Theme.of(context).brightness == Brightness.dark
-                                                      ? Colors.white70
-                                                      : Colors.black87,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: event.color.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            '${event.yearsDifference} yrs',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: event.color,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.white60
-                                              : Colors.grey,
-                                          fontFamily: 'Roboto',
-                                        ),
-                                        children: [
-                                          const TextSpan(text: 'Next in: '),
-                                          TextSpan(
-                                            text: '${event.daysUntilNext} days',
-                                            style: TextStyle(
-                                              color: event.color,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.cake_outlined),
+              text: l10n.get('tabMilestones'),
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showEventDialog(),
-        child: const Icon(Icons.add),
+            Tab(
+              icon: const Icon(Icons.repeat),
+              text: l10n.get('tabRecurring'),
+            ),
+          ],
+        ),
       ),
+      body: Stack(
+        children: [
+          TabBarView(
+            controller: _tabController,
+            children: [
+              _buildEventList(milestones, l10n.get('noEvents')),
+              _buildEventList(recurring, l10n.get('noRecurring')),
+            ],
+          ),
+          if (_isFabMenuOpen)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => setState(() => _isFabMenuOpen = false),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.35),
+                ),
+              ),
+            ),
+        ],
+      ),
+      floatingActionButton: _buildExpandableFab(),
     );
   }
 }
@@ -1076,7 +1681,18 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _exportCsv(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
     List<List<dynamic>> rows = [];
-    rows.add(['ID', 'Description', 'Date', 'IconCodePoint', 'ColorValue', 'Category', 'RemindDaysBefore']);
+    rows.add([
+      'ID',
+      'Description',
+      'Date',
+      'IconCodePoint',
+      'ColorValue',
+      'Category',
+      'RemindDaysBefore',
+      'Recurrence',
+      'Weekday',
+      'DayOfMonth',
+    ]);
     for (var event in events) {
       rows.add([
         event.id,
@@ -1086,18 +1702,22 @@ class SettingsScreen extends StatelessWidget {
         event.colorValue,
         event.category.name,
         event.remindDaysBefore,
+        event.recurrence.name,
+        event.weekday,
+        event.dayOfMonth,
       ]);
     }
     String csvData = const ListToCsvConverter().convert(rows);
     final output = await getTemporaryDirectory();
     final file = File('${output.path}/events_export.csv');
     await file.writeAsString(csvData);
-    await Share.shareXFiles([XFile(file.path)], text: l10n.get('csvShareText'));
+    await Share.shareXFiles([XFile(file.path)],
+        text: l10n.get('csvShareText'));
   }
 
   Future<void> _importCsv(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
-    
+
     FilePickerResult? result;
     try {
       result = await FilePicker.platform.pickFiles(
@@ -1117,8 +1737,7 @@ class SettingsScreen extends StatelessWidget {
     if (!context.mounted) return;
 
     bool overwrite = false;
-    
-    // Show dialog with checkbox option before importing
+
     final bool? shouldImport = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -1189,6 +1808,8 @@ class SettingsScreen extends StatelessWidget {
       for (int i = 1; i < fields.length; i++) {
         final row = fields[i];
         if (row.length >= 3) {
+          final parsedDate = DateTime.parse(row[2].toString());
+
           EventCategory parsedCategory = EventCategory.other;
           if (row.length >= 6) {
             parsedCategory = EventCategory.values.firstWhere(
@@ -1202,13 +1823,38 @@ class SettingsScreen extends StatelessWidget {
             parsedRemindDays = int.tryParse(row[6].toString()) ?? 0;
           }
 
+          RecurrenceType parsedRecurrence = RecurrenceType.yearly;
+          if (row.length >= 8) {
+            parsedRecurrence = RecurrenceType.values.firstWhere(
+              (r) => r.name == row[7].toString(),
+              orElse: () => RecurrenceType.yearly,
+            );
+          }
+
+          final int parsedWeekday = row.length >= 9
+              ? (int.tryParse(row[8].toString()) ?? parsedDate.weekday)
+              : parsedDate.weekday;
+
+          final int parsedDayOfMonth = row.length >= 10
+              ? (int.tryParse(row[9].toString()) ?? parsedDate.day)
+              : parsedDate.day;
+
           importedEvents.add(
             EventItem(
               id: row[0].toString(),
               description: row[1].toString(),
-              date: DateTime.parse(row[2].toString()),
-              iconCodePoint: row.length >= 4 ? int.tryParse(row[3].toString()) ?? parsedCategory.defaultIcon.codePoint : parsedCategory.defaultIcon.codePoint,
-              colorValue: row.length >= 5 ? int.tryParse(row[4].toString()) ?? parsedCategory.defaultColor.toARGB32() : parsedCategory.defaultColor.toARGB32(),
+              date: parsedDate,
+              recurrence: parsedRecurrence,
+              weekday: parsedWeekday,
+              dayOfMonth: parsedDayOfMonth,
+              iconCodePoint: row.length >= 4
+                  ? int.tryParse(row[3].toString()) ??
+                      parsedCategory.defaultIcon.codePoint
+                  : parsedCategory.defaultIcon.codePoint,
+              colorValue: row.length >= 5
+                  ? int.tryParse(row[4].toString()) ??
+                      parsedCategory.defaultColor.toARGB32()
+                  : parsedCategory.defaultColor.toARGB32(),
               category: parsedCategory,
               remindDaysBefore: parsedRemindDays,
             ),
@@ -1217,22 +1863,28 @@ class SettingsScreen extends StatelessWidget {
       }
 
       List<EventItem> finalEvents = [];
-      
+
       if (overwrite) {
         finalEvents = importedEvents;
       } else {
         finalEvents = List.from(events);
         for (var imported in importedEvents) {
           int existingIndex = finalEvents.indexWhere(
-            (e) => e.description.trim().toLowerCase() == imported.description.trim().toLowerCase(),
+            (e) =>
+                e.description.trim().toLowerCase() ==
+                imported.description.trim().toLowerCase(),
           );
 
           if (existingIndex != -1) {
             finalEvents[existingIndex].date = imported.date;
+            finalEvents[existingIndex].recurrence = imported.recurrence;
+            finalEvents[existingIndex].weekday = imported.weekday;
+            finalEvents[existingIndex].dayOfMonth = imported.dayOfMonth;
             finalEvents[existingIndex].iconCodePoint = imported.iconCodePoint;
             finalEvents[existingIndex].colorValue = imported.colorValue;
             finalEvents[existingIndex].category = imported.category;
-            finalEvents[existingIndex].remindDaysBefore = imported.remindDaysBefore;
+            finalEvents[existingIndex].remindDaysBefore =
+                imported.remindDaysBefore;
           } else {
             finalEvents.add(imported);
           }
@@ -1240,7 +1892,8 @@ class SettingsScreen extends StatelessWidget {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      final String encoded = jsonEncode(finalEvents.map((e) => e.toJson()).toList());
+      final String encoded =
+          jsonEncode(finalEvents.map((e) => e.toJson()).toList());
       await prefs.setString('saved_events', encoded);
 
       onEventsUpdated();
@@ -1267,7 +1920,6 @@ class SettingsScreen extends StatelessWidget {
         ? ThemeMode.dark
         : ThemeMode.light;
 
-    // Determine current dropdown selection value
     String selectedLangValue = 'en';
     if (currentLocale.languageCode == 'pt') {
       selectedLangValue = currentLocale.countryCode == 'BR' ? 'pt_BR' : 'pt';
@@ -1281,7 +1933,6 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          // Language Section
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
@@ -1319,7 +1970,8 @@ class SettingsScreen extends StatelessWidget {
               onChanged: (String? val) {
                 if (val != null) {
                   if (val == 'pt_BR') {
-                    EventTrackerApp.of(context).setLocale(const Locale('pt', 'BR'));
+                    EventTrackerApp.of(context)
+                        .setLocale(const Locale('pt', 'BR'));
                   } else {
                     EventTrackerApp.of(context).setLocale(Locale(val));
                   }
@@ -1328,8 +1980,6 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const Divider(),
-
-          // Appearance Section
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
@@ -1364,8 +2014,6 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const Divider(),
-
-          // Data Management Section
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
