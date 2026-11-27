@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:csv/csv.dart';
 import 'package:path_provider/path_provider.dart';
@@ -173,7 +174,6 @@ extension EventCategoryExtension on EventCategory {
   }
 }
 
-
 // ==========================================
 // I18N / Localizations Helper
 // ==========================================
@@ -253,13 +253,38 @@ class AppLocalizations {
       'weekday5': 'Friday',
       'weekday6': 'Saturday',
       'weekday7': 'Sunday',
+      'privacyPolicy': 'Privacy Policy',
+      'privacyDialogTitle': 'Privacy Policy & Data Notice',
+      'privacyDialogBody':
+          'Date Reminder: Fixed Events stores all your events locally on your device and does not collect, store, or share any personally identifiable information on external servers. Local notifications are used only for the reminders you schedule.\n\nPlease read and agree to our Privacy Policy before continuing.',
+      'viewPrivacyPolicy': 'Read Full Privacy Policy',
+      'agreeAndContinue': 'Agree & Continue',
+      'declineAndExit': 'Decline',
+      'privacyFullText':
+          'Privacy Policy & Child Safety Standards for Date Reminder: Fixed Events\n\n'
+          'Effective Date: November 15, 2026\n\n'
+          'Christian Peixoto built the Date Reminder: Fixed Events app as a Free app. This service is provided by Christian Peixoto and is intended for use as is.\n\n'
+          'Information Collection and Use\n'
+          'Date Reminder: Fixed Events does not collect, store, or share any personally identifiable information (such as your name, email address, phone number, or precise location) on external servers.\n\n'
+          'Children\'s Privacy\n'
+          'This app does not knowingly collect personally identifiable information from children under the age of 13.\n\n'
+          'Changes to This Privacy Policy\n'
+          'We may update our Privacy Policy from time to time. You are advised to review this page periodically for any changes.\n\n'
+          'Contact Us\n'
+          'If you have any questions or suggestions about this Privacy Policy, contact us at: christianpeixotobrasil@gmail.com.\n\n'
+          '---\n\n'
+          'Addendum: Child Safety Standards and CSAE Policy\n\n'
+          'Effective Date: November 15, 2026\n\n'
+          'Date Reminder: Fixed Events and Christian Peixoto maintain a strict zero-tolerance policy toward Child Sexual Abuse and Exploitation (CSAE). Our app does not allow, facilitate, or distribute any content related to child sexual abuse material (CSAM) or the endangerment of minors.\n\n'
+          'If you encounter any inappropriate or illegal content related to child safety within our ecosystem, you can report it immediately by contacting us at christianpeixotobrasil@gmail.com, and appropriate action will be taken.',
     },
     'pt': {
       'appTitle': 'Date Reminder: Fixed Events',
       'tabMilestones': 'Marcos Anuais',
       'tabRecurring': 'Recorrentes',
       'noEvents': 'Sem eventos adicionados. Toque em + para adicionar um!',
-      'noRecurring': 'Sem lembretes semanais ou mensais. Toque em + para adicionar!',
+      'noRecurring':
+          'Sem lembretes semanais ou mensais. Toque em + para adicionar!',
       'addEvent': 'Adicionar Evento',
       'editEvent': 'Editar Evento',
       'description': 'Descrição',
@@ -319,13 +344,38 @@ class AppLocalizations {
       'weekday5': 'Sexta-feira',
       'weekday6': 'Sábado',
       'weekday7': 'Domingo',
+      'privacyPolicy': 'Política de Privacidade',
+      'privacyDialogTitle': 'Política de Privacidade e Aviso de Dados',
+      'privacyDialogBody':
+          'O Date Reminder: Fixed Events guarda todos os seus eventos localmente no seu dispositivo e não recolhe, armazena nem partilha informações pessoalmente identificáveis em servidores externos. As notificações locais são usadas apenas para os lembretes que agendar.\n\nPor favor, leia e aceite a nossa Política de Privacidade antes de continuar.',
+      'viewPrivacyPolicy': 'Ler Política de Privacidade Completa',
+      'agreeAndContinue': 'Concordar e Continuar',
+      'declineAndExit': 'Recusar',
+      'privacyFullText':
+          'Política de Privacidade e Padrões de Segurança Infantil para Date Reminder: Fixed Events\n\n'
+          'Data de Entrada em Vigor: 15 de novembro de 2026\n\n'
+          'Christian Peixoto criou a aplicação Date Reminder: Fixed Events como uma aplicação Gratuita. Este serviço é fornecido por Christian Peixoto e destina-se a ser utilizado tal como está.\n\n'
+          'Recolha e Utilização de Informações\n'
+          'O Date Reminder: Fixed Events não recolhe, armazena nem partilha quaisquer informações pessoalmente identificáveis (tais como o seu nome, endereço de e-mail, número de telefone ou localização precisa) em servidores externos.\n\n'
+          'Privacidade das Crianças\n'
+          'Esta aplicação não recolhe intencionalmente informações pessoalmente identificáveis de crianças com menos de 13 anos.\n\n'
+          'Alterações a Esta Política de Privacidade\n'
+          'Podemos atualizar a nossa Política de Privacidade periodicamente. Aconselha-se que reveja esta página regularmente para verificar eventuais alterações.\n\n'
+          'Contacte-nos\n'
+          'Se tiver alguma dúvida ou sugestão sobre esta Política de Privacidade, contacte-nos através de: christianpeixotobrasil@gmail.com.\n\n'
+          '---\n\n'
+          'Adenda: Padrões de Segurança Infantil e Política CSAE\n\n'
+          'Data de Entrada em Vigor: 15 de novembro de 2026\n\n'
+          'O Date Reminder: Fixed Events e Christian Peixoto mantêm uma política estrita de tolerância zero relativamente ao Abuso e Exploração Sexual Infantil (CSAE). A nossa aplicação não permite, facilita nem distribui qualquer conteúdo relacionado com material de abuso sexual infantil (CSAM) ou que coloque menores em perigo.\n\n'
+          'Se encontrar qualquer conteúdo inadequado ou ilegal relacionado com a segurança infantil no nosso ecossistema, pode denunciá-lo imediatamente contactando-nos através de christianpeixotobrasil@gmail.com, e serão tomadas as medidas adequadas.',
     },
     'es': {
       'appTitle': 'Date Reminder: Eventos Fijos',
       'tabMilestones': 'Hitos Anuales',
       'tabRecurring': 'Recurrentes',
       'noEvents': '¡No hay eventos añadidos. Toca + para añadir uno!',
-      'noRecurring': 'Sin recordatorios semanales o mensuales. ¡Toca + para añadir!',
+      'noRecurring':
+          'Sin recordatorios semanales o mensuales. ¡Toca + para añadir!',
       'addEvent': 'Añadir Evento',
       'editEvent': 'Editar Evento',
       'description': 'Descripción',
@@ -385,6 +435,30 @@ class AppLocalizations {
       'weekday5': 'Viernes',
       'weekday6': 'Sábado',
       'weekday7': 'Domingo',
+      'privacyPolicy': 'Política de Privacidad',
+      'privacyDialogTitle': 'Política de Privacidad y Aviso de Datos',
+      'privacyDialogBody':
+          'Date Reminder: Fixed Events guarda todos tus eventos localmente en tu dispositivo y no recopila, almacena ni comparte información personal identificable en servidores externos. Las notificaciones locales se usan solo para los recordatorios que programes.\n\nPor favor, lee y acepta nuestra Política de Privacidad antes de continuar.',
+      'viewPrivacyPolicy': 'Leer Política de Privacidad Completa',
+      'agreeAndContinue': 'Aceptar y Continuar',
+      'declineAndExit': 'Rechazar',
+      'privacyFullText':
+          'Política de Privacidad y Estándares de Seguridad Infantil para Date Reminder: Fixed Events\n\n'
+          'Fecha de entrada en vigor: 15 de noviembre de 2026\n\n'
+          'Christian Peixoto creó la aplicación Date Reminder: Fixed Events como una aplicación Gratuita. Este servicio es proporcionado por Christian Peixoto y está destinado a utilizarse tal cual.\n\n'
+          'Recopilación y uso de la información\n'
+          'Date Reminder: Fixed Events no recopila, almacena ni comparte ninguna información personal identificable (como tu nombre, dirección de correo electrónico, número de teléfono o ubicación precisa) en servidores externos.\n\n'
+          'Privacidad de los menores\n'
+          'Esta aplicación no recopila intencionadamente información personal identificable de menores de 13 años.\n\n'
+          'Cambios en esta Política de Privacidad\n'
+          'Podemos actualizar nuestra Política de Privacidad periódicamente. Se te recomienda revisar esta página de forma periódica para comprobar si hay cambios.\n\n'
+          'Contáctanos\n'
+          'Si tienes alguna pregunta o sugerencia sobre esta Política de Privacidad, contáctanos en: christianpeixotobrasil@gmail.com.\n\n'
+          '---\n\n'
+          'Anexo: Estándares de Seguridad Infantil y Política CSAE\n\n'
+          'Fecha de entrada en vigor: 15 de noviembre de 2026\n\n'
+          'Date Reminder: Fixed Events y Christian Peixoto mantienen una estricta política de tolerancia cero hacia el Abuso y la Explotación Sexual Infantil (CSAE). Nuestra aplicación no permite, facilita ni distribuye ningún contenido relacionado con material de abuso sexual infantil (CSAM) ni la puesta en peligro de menores.\n\n'
+          'Si encuentras algún contenido inapropiado o ilegal relacionado con la seguridad infantil dentro de nuestro ecosistema, puedes denunciarlo de inmediato poniéndote en contacto con nosotros en christianpeixotobrasil@gmail.com, y se tomarán las medidas oportunas.',
     },
   };
 
@@ -421,7 +495,8 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const AppLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) => ['en', 'pt', 'es'].contains(locale.languageCode);
+  bool isSupported(Locale locale) =>
+      ['en', 'pt', 'es'].contains(locale.languageCode);
 
   @override
   Future<AppLocalizations> load(Locale locale) async {
@@ -740,6 +815,7 @@ class _EventListScreenState extends State<EventListScreen>
   List<EventItem> _events = [];
   late TabController _tabController;
   bool _isFabMenuOpen = false;
+  bool _privacyDialogShown = false;
 
   final List<IconData> availableIcons = kAppIcons;
 
@@ -764,8 +840,10 @@ class _EventListScreenState extends State<EventListScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: 2, vsync: this);
-    _requestPermissions();
     _loadEvents();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPrivacyConsent();
+    });
   }
 
   @override
@@ -788,6 +866,87 @@ class _EventListScreenState extends State<EventListScreen>
             AndroidFlutterLocalNotificationsPlugin>();
 
     await androidImplementation?.requestNotificationsPermission();
+  }
+
+  Future<void> _checkPrivacyConsent() async {
+    if (_privacyDialogShown) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final bool accepted = prefs.getBool('privacy_policy_accepted') ?? false;
+
+    if (accepted) {
+      await _requestPermissions();
+      return;
+    }
+
+    if (!mounted) return;
+    _privacyDialogShown = true;
+    final l10n = AppLocalizations.of(context);
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            title: Text(l10n.get('privacyDialogTitle')),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.get('privacyDialogBody')),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: () => _showFullPrivacyDialog(dialogContext),
+                    icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+                    label: Text(l10n.get('viewPrivacyPolicy')),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  SystemNavigator.pop();
+                },
+                child: Text(l10n.get('declineAndExit')),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  await prefs.setBool('privacy_policy_accepted', true);
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                  await _requestPermissions();
+                },
+                child: Text(l10n.get('agreeAndContinue')),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showFullPrivacyDialog(BuildContext ctx) {
+    final l10n = AppLocalizations.of(ctx);
+    showDialog<void>(
+      context: ctx,
+      builder: (innerContext) => AlertDialog(
+        title: Text(l10n.get('privacyPolicy')),
+        content: SingleChildScrollView(
+          child: Text(l10n.get('privacyFullText')),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(innerContext).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadEvents() async {
@@ -1912,6 +2071,25 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
+  void _showPrivacyPolicy(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.get('privacyPolicy')),
+        content: SingleChildScrollView(
+          child: Text(l10n.get('privacyFullText')),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -2034,6 +2212,12 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.download_for_offline),
             title: Text(l10n.get('importCsv')),
             onTap: () => _importCsv(context),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: Text(l10n.get('privacyPolicy')),
+            onTap: () => _showPrivacyPolicy(context),
           ),
         ],
       ),
